@@ -25,87 +25,34 @@ const BADGE_TEXT_COLOR = rgb(0.4, 0.1, 0.1);
 const pdfDoc = await PDFDocument.create();
 pdfDoc.registerFontkit(fontkit)
 
-const badges = await embedBadgeTemplates(pdfDoc);
-// const font = await embedFont(pdfDoc, './fonts/EagleLake-Regular.ttf');
-const font = await embedFont(pdfDoc, './fonts/Arial-Bold.ttf');
-// const font = await embedFont(pdfDoc, StandardFonts.TimesRomanBold);
+const page = pdfDoc.addPage(PageSizes.Letter);
 
-const records = await processCSV('./data.csv');
 
-let record = 0;
+const filepath = resolve('./img/template-Help.png');
+const filebuffer = await readFile(filepath, 'base64');
 
-do {
-  let page = pdfDoc.addPage(PageSizes.Letter);
+const badgeTemplate = await pdfDoc.embedPng(filebuffer);
 
-  for(let row = 0; row < 4; row++) {
-    for(let col = 0; col < 3; col++) {
-      // bottom left coordinate of this badge
-      let { x, y } = getXY(row, col);
+for(let row = 0; row < 4; row++) {
+  for(let col = 0; col < 3; col++) {
+    // bottom left coordinate of this badge
+    let { x, y } = getXY(row, col);
 
-      const camper = records[record];
-
-      if (!camper) {
-        addBadge('', page, x, y);
-
-        continue;
-      };
-
-      console.log(`${record}: badge for ${camper.badge_name}`);
-      addBadge(camper.badge_title, page, x, y);
-
-      y = placeName(camper.badge_name, page, x, y);
-      placePronouns(camper.badge_gender, page, x, y);
-
-      record++;
-    }
+    page.drawImage(badgeTemplate, {
+      x, y,
+      width: BADGE_SIZE,
+      height: BADGE_SIZE,
+    });
   }
-} while (record < records.length);
+}
 
 
 writePDF(pdfDoc);
 
 
-
-async function embedBadgeTemplates(pdfDoc) {
-  const badges = {
-    cc: { regex: 'Security', file: './img/template-CC.png' },
-    com: { regex: 'Committee', file: './img/template-Comm.png' },
-    instructor: { regex: 'Instructor', file: './img/template-Instructor.png' },
-    board: { regex: 'Board', file: './img/template-LTA.png' },
-    manager: { regex: 'Manager', file: './img/template-Manager.png' },
-    office: { regex: 'Office', file: './img/template-Office.png' },
-    setup: { regex: 'Setup', file: './img/template-SetupTear.png' },
-    plain: { regex: 'None', file: './img/template-Plain.png' },
-  };
-
-  await Promise.all(Object.keys(badges).map(async (key) => {
-    const filepath = resolve(badges[key].file);
-    const filebuffer = await readFile(filepath, 'base64');
-
-    const badgeTemplate = await pdfDoc.embedPng(filebuffer);
-
-    badges[key].file = badgeTemplate;
-    badges[key].regex = new RegExp(badges[key].regex, 'i');
-  }));
-
-  return badges;
-}
-
-async function embedFont(pdfDoc, arg) {
-  let toEmbed = arg;
-  try {
-    const filepath = resolve(arg);
-    toEmbed = await readFile(filepath);
-  } catch(e) {
-    // do nothing
-  }
-
-  return pdfDoc.embedFont(toEmbed);
-}
-
 async function writePDF(pdfDoc) {
   const pdfBytes = await pdfDoc.save();
-  await writeFile('badges.pdf', pdfBytes);
+  await writeFile('help-badges.pdf', pdfBytes);
 }
 
 function getXY(row, col) {
@@ -115,36 +62,7 @@ function getXY(row, col) {
   return { x, y };
 }
 
-function addBadge(title, page, x, y) {
-  let badgeTemplate;
-
-  switch (true) {
-    case badges.cc.regex.test(title):
-      badgeTemplate = badges.cc.file;
-      break;
-    case badges.com.regex.test(title):
-      badgeTemplate = badges.com.file;
-      break;
-    case badges.instructor.regex.test(title):
-      badgeTemplate = badges.instructor.file;
-      break;
-    case badges.board.regex.test(title):
-      badgeTemplate = badges.board.file;
-      break;
-    case badges.manager.regex.test(title):
-      badgeTemplate = badges.manager.file;
-      break;
-    case badges.office.regex.test(title):
-      badgeTemplate = badges.office.file;
-      break;
-    case badges.setup.regex.test(title):
-      badgeTemplate = badges.setup.file;
-      break;
-    default:
-      badgeTemplate = badges.plain.file;
-      break;
-  }
-
+function addBadge(page, x, y) {
   page.drawImage(badgeTemplate, {
     x, y,
     width: BADGE_SIZE,

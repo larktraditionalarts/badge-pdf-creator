@@ -135,6 +135,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+.DS_Store
+
 # Ignore data files and output
 *.csv
 *.pdf
