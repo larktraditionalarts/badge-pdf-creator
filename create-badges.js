@@ -76,6 +76,7 @@ async function embedBadgeTemplates(pdfDoc) {
     office: { regex: 'Office', file: './img/template-Office.png' },
     setup: { regex: 'Setup', file: './img/template-SetupTear.png' },
     plain: { regex: 'None', file: './img/template-Plain.png' },
+    volunteer: { regex: 'Volunteer', file: './img/template-RegVolunteer.png' },
   };
 
   await Promise.all(Object.keys(badges).map(async (key) => {
@@ -140,6 +141,10 @@ function addBadge(title, page, x, y) {
     case badges.setup.regex.test(title):
       badgeTemplate = badges.setup.file;
       break;
+    case badges.volunteer.regex.test(title):
+      badgeTemplate = badges.volunteer.file;
+      break;
+
     default:
       badgeTemplate = badges.plain.file;
       break;
