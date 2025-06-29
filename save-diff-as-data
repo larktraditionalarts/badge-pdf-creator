@@ -1,0 +1,30 @@
+#!/bin/bash
+
+help() {
+    cat <<END
+Usage:
+
+$0 oldbadges.csv currentbadges.csv
+
+This finds changes in two badge csv files and saves the changed badges to
+data.csv to be consumed by create-badges.js
+END
+
+exit 0
+}
+
+if [ -z "$1" ]; then
+  echo "Missing old badge file argument"
+  help
+fi
+
+if [ -z "$2" ]; then
+  echo "Missing current badge file argument"
+  help
+fi
+
+
+
+head -n 1 "$2" > data.csv
+
+git diff --no-index "$1" "$2" | egrep '^\+"' | sed -e 's/^\+//' >> data.csv
