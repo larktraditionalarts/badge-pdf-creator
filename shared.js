@@ -1,6 +1,24 @@
-import { PDFDocument, PageSizes, StandardFonts, degrees, grayscale, rgb } from 'pdf-lib';
+import { PDFDocument, PageSizes, StandardFonts, rgb } from 'pdf-lib';
+import { parse } from 'csv-parse/sync';
 import fontkit from '@pdf-lib/fontkit';
 import { writeFile, readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+export const badgeConfig = [
+  { regex: 'Security', file: './img/template-CC.png' },
+  { regex: 'Community Care', file: './img/template-CC.png' },
+  { regex: 'Committee', file: './img/template-Comm.png' },
+  { regex: 'Instructor', file: './img/template-Instructor.png' },
+  { regex: 'Board', file: './img/template-LTA.png' },
+  { regex: 'Manager', file: './img/template-Manager.png' },
+  { regex: 'Office', file: './img/template-Office.png' },
+  { regex: 'Setup', file: './img/template-SetupTear.png' },
+  { regex: 'No title or job', file: './img/template-Plain.png' },
+  { regex: 'Volunteer', file: './img/template-RegVolunteer.png' },
+  { regex: 'Bus Driver', file: './img/template-Bus.png' },
+];
+
+export const timesRomanBold = StandardFonts.TimesRomanBold;
 
 // pdf-lib library represent dimensions of page sizes in points.
 // In the PDF coordinate system, 72 points equal 1 inch.
@@ -19,9 +37,21 @@ export async function createPdfDoc() {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  const page = pdfDoc.addPage(PageSizes.Letter);
+  const addPage = () => pdfDoc.addPage(PageSizes.Letter);
+  // const embedFont = async (font) => embedFont(pdfDoc, './fonts/Arial-Bold.ttf')
+  const embedFont = async (arg) => {
+    let toEmbed = arg;
+    try {
+      const filepath = resolve(arg);
+      toEmbed = await readFile(filepath);
+    } catch(e) { // eslint-disable-line no-unused-vars
+      // do nothing, assume this is a standard font
+    }
 
-  return { pdfDoc, page };
+    return pdfDoc.embedFont(toEmbed);
+  };
+
+  return { pdfDoc, addPage, embedFont };
 }
 
 export async function writePDF(pdfDoc, filename) {
@@ -36,7 +66,9 @@ export function getXY(row, col) {
   return { x, y };
 }
 
-export function addBadge(page, x, y) {
+export function addBadge(badgeTemplate, page, row, col) {
+  const { x, y } = getXY(row, col);
+
   page.drawImage(badgeTemplate, {
     x, y,
     width: BADGE_SIZE,
@@ -44,35 +76,9 @@ export function addBadge(page, x, y) {
   });
 }
 
-export async function processCSV(filename) {
-  const filebuffer = await readFile(filename, 'utf8');
+export function placeName(name, page, font, row, col) {
+  let { x, y } = getXY(row, col);
 
-  const records = parse(filebuffer.toString(), {
-    columns: true,
-    skip_empty_lines: true
-  });
-
-  return records;
-}
-
-export function placePronouns(pn, page, x, y) {
-  if (!pn) return;
-
-  const pronoun = `(${pn})`;
-  const size = 14;
-  const X_CENTER = x + BADGE_SIZE / 2;
-  const width = font.widthOfTextAtSize(pronoun, size);
-
-  page.drawText(pronoun, {
-    x: X_CENTER - (width / 2),
-    y: y - 24,
-    size,
-    font,
-    color: BADGE_TEXT_COLOR,
-  });
-}
-
-export function placeName(name, page, x, y) {
   const X_CENTER = x + BADGE_SIZE / 2;
 
   let nameParts = name.replace(/\s*/, ' ').trim().split(' ');
@@ -121,8 +127,37 @@ export function placeName(name, page, x, y) {
     size = size * 0.8;
   }
 
-  return currentY;
+  return { x, y: currentY };
 }
+
+export function placePronouns(pn, page, font, x, y) {
+  if (!pn) return;
+
+  const pronoun = `(${pn})`;
+  const size = 14;
+  const X_CENTER = x + BADGE_SIZE / 2;
+  const width = font.widthOfTextAtSize(pronoun, size);
+
+  page.drawText(pronoun, {
+    x: X_CENTER - (width / 2),
+    y: y - 24,
+    size,
+    font,
+    color: BADGE_TEXT_COLOR,
+  });
+}
+
+export async function processCSV(filename) {
+  const filebuffer = await readFile(filename, 'utf8');
+
+  const records = parse(filebuffer.toString(), {
+    columns: true,
+    skip_empty_lines: true
+  });
+
+  return records;
+}
+
 
 export function findStringSize(string, startSize, font, widthLimit) {
   let width = 0;
@@ -139,4 +174,22 @@ export function checkCLIArgs(argv) {
   const args = argv.slice(2);
 
   return args;
+}
+
+export async function embedBadgeTemplates(pdfDoc) {
+  const badges = [];
+
+  await Promise.all(badgeConfig.map(async (b) => {
+    const filepath = resolve(b.file);
+    const filebuffer = await readFile(filepath, 'base64');
+
+    const badgeTemplate = await pdfDoc.embedPng(filebuffer);
+
+    badges.push({
+      file: badgeTemplate,
+      regex: new RegExp(b.regex, 'i'),
+    });
+  }));
+
+  return badges;
 }

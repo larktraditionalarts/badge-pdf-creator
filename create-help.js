@@ -2,20 +2,16 @@
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { parse } from 'csv-parse/sync';
 
 import {
-  checkCLIArgs,
   createPdfDoc,
   getXY,
   BADGE_SIZE,
   writePDF,
 } from './shared.js';
 
-const args = checkCLIArgs(process.argv);
-
-const { pdfDoc, page } = await createPdfDoc();
-
+const { pdfDoc, addPage } = await createPdfDoc();
+const page = addPage();
 
 const filepath = resolve('./img/template-Help.png');
 const filebuffer = await readFile(filepath, 'base64');
@@ -35,7 +31,4 @@ for(let row = 0; row < 4; row++) {
   }
 }
 
-
 writePDF(pdfDoc, 'help-badges.pdf');
-
-
