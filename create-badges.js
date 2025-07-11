@@ -26,6 +26,7 @@ const pdfDoc = await PDFDocument.create();
 pdfDoc.registerFontkit(fontkit)
 
 const badges = await embedBadgeTemplates(pdfDoc);
+const plainBadge = badges.find(b => b.regex.test('No title or job'));
 // const font = await embedFont(pdfDoc, './fonts/EagleLake-Regular.ttf');
 const font = await embedFont(pdfDoc, './fonts/Arial-Bold.ttf');
 // const font = await embedFont(pdfDoc, StandardFonts.TimesRomanBold);
@@ -67,26 +68,28 @@ writePDF(pdfDoc);
 
 
 async function embedBadgeTemplates(pdfDoc) {
-  const badges = {
-    cc: { regex: 'Security', file: './img/template-CC.png' },
-    com: { regex: 'Committee', file: './img/template-Comm.png' },
-    instructor: { regex: 'Instructor', file: './img/template-Instructor.png' },
-    board: { regex: 'Board', file: './img/template-LTA.png' },
-    manager: { regex: 'Manager', file: './img/template-Manager.png' },
-    office: { regex: 'Office', file: './img/template-Office.png' },
-    setup: { regex: 'Setup', file: './img/template-SetupTear.png' },
-    plain: { regex: 'None', file: './img/template-Plain.png' },
-    volunteer: { regex: 'Volunteer', file: './img/template-RegVolunteer.png' },
-  };
+  const badges = [
+    { regex: 'Security', file: './img/template-CC.png' },
+    { regex: 'Community Care', file: './img/template-CC.png' },
+    { regex: 'Committee', file: './img/template-Comm.png' },
+    { regex: 'Instructor', file: './img/template-Instructor.png' },
+    { regex: 'Board', file: './img/template-LTA.png' },
+    { regex: 'Manager', file: './img/template-Manager.png' },
+    { regex: 'Office', file: './img/template-Office.png' },
+    { regex: 'Setup', file: './img/template-SetupTear.png' },
+    { regex: 'No title or job', file: './img/template-Plain.png' },
+    { regex: 'Volunteer', file: './img/template-RegVolunteer.png' },
+    { regex: 'Bus Driver', file: './img/template-Bus.png' },
+  ];
 
-  await Promise.all(Object.keys(badges).map(async (key) => {
-    const filepath = resolve(badges[key].file);
+  await Promise.all(badges.map(async (badge) => {
+    const filepath = resolve(badge.file);
     const filebuffer = await readFile(filepath, 'base64');
 
     const badgeTemplate = await pdfDoc.embedPng(filebuffer);
 
-    badges[key].file = badgeTemplate;
-    badges[key].regex = new RegExp(badges[key].regex, 'i');
+    badge.file = badgeTemplate;
+    badge.regex = new RegExp(badge.regex, 'i');
   }));
 
   return badges;
@@ -117,38 +120,46 @@ function getXY(row, col) {
 }
 
 function addBadge(title, page, x, y) {
-  let badgeTemplate;
+  // let badgeTemplate;
+  // 
+  // switch (true) {
+  //   case badges.cc1.regex.test(title):
+  //     badgeTemplate = badges.cc1.file;
+  //     break;
+  //   case badges.cc2.regex.test(title):
+  //     badgeTemplate = badges.cc2.file;
+  //     break;
+  //   case badges.com.regex.test(title):
+  //     badgeTemplate = badges.com.file;
+  //     break;
+  //   case badges.instructor.regex.test(title):
+  //     badgeTemplate = badges.instructor.file;
+  //     break;
+  //   case badges.board.regex.test(title):
+  //     badgeTemplate = badges.board.file;
+  //     break;
+  //   case badges.manager.regex.test(title):
+  //     badgeTemplate = badges.manager.file;
+  //     break;
+  //   case badges.office.regex.test(title):
+  //     badgeTemplate = badges.office.file;
+  //     break;
+  //   case badges.setup.regex.test(title):
+  //     badgeTemplate = badges.setup.file;
+  //     break;
+  //   case badges.volunteer.regex.test(title):
+  //     badgeTemplate = badges.volunteer.file;
+  //     break;
+  //   case badges.bus.regex.test(title):
+  //     badgeTemplate = badges.bus.file;
+  //     break;
 
-  switch (true) {
-    case badges.cc.regex.test(title):
-      badgeTemplate = badges.cc.file;
-      break;
-    case badges.com.regex.test(title):
-      badgeTemplate = badges.com.file;
-      break;
-    case badges.instructor.regex.test(title):
-      badgeTemplate = badges.instructor.file;
-      break;
-    case badges.board.regex.test(title):
-      badgeTemplate = badges.board.file;
-      break;
-    case badges.manager.regex.test(title):
-      badgeTemplate = badges.manager.file;
-      break;
-    case badges.office.regex.test(title):
-      badgeTemplate = badges.office.file;
-      break;
-    case badges.setup.regex.test(title):
-      badgeTemplate = badges.setup.file;
-      break;
-    case badges.volunteer.regex.test(title):
-      badgeTemplate = badges.volunteer.file;
-      break;
+  //   default:
+  //     badgeTemplate = badges.plain.file;
+  //     break;
+  // }
 
-    default:
-      badgeTemplate = badges.plain.file;
-      break;
-  }
+  const badgeTemplate = (badges.find(b => b.regex.test(title)) || plainBadge).file;
 
   page.drawImage(badgeTemplate, {
     x, y,

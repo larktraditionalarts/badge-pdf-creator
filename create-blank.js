@@ -17,7 +17,7 @@ const args = checkCLIArgs(process.argv);
 const { pdfDoc, page } = await createPdfDoc();
 
 
-const filepath = resolve('./img/template-Help.png');
+const filepath = resolve('./img/template-Plain.png');
 const filebuffer = await readFile(filepath, 'base64');
 
 const badgeTemplate = await pdfDoc.embedPng(filebuffer);
@@ -36,6 +36,6 @@ for(let row = 0; row < 4; row++) {
 }
 
 
-writePDF(pdfDoc, 'help-badges.pdf');
+writePDF(pdfDoc, 'blank-badges.pdf');
 
 
